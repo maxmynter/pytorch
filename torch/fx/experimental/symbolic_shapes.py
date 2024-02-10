@@ -1869,6 +1869,9 @@ class ShapeEnv:
         self.log.info("create_env")
         self.frozen = False
         self.dim_constraints: Optional[DimConstraints] = None
+        self.size_hint = lru_cache(256)(self._uncached_size_hint)
+        self.has_hint = lru_cache(256)(self._uncached_has_hint)
+        self._maybe_guard_eq = lru_cache(256)(self._uncached_maybe_guard_eq)
         self.counter = collections.Counter()
         # Mapping from sympy.Symbol to the number of guards which mention this
         # symbol
@@ -3451,8 +3454,7 @@ class ShapeEnv:
                 expr = new_expr
         return expr
 
-    @lru_cache(256)
-    def size_hint(self, expr: "sympy.Expr", *, allow_none=False):
+    def _uncached_size_hint(self, expr: "sympy.Expr", *, allow_none=False):
         """
         Gets a size hint for a given expression from the underlying shapes we had.
         Does not introduce a guard, so only use this when you can guarantee that
@@ -3474,8 +3476,7 @@ class ShapeEnv:
         return result_expr
 
     # NB: keep in sync with size_hint
-    @lru_cache(256)
-    def has_hint(self, expr: "sympy.Expr"):
+    def _uncached_has_hint(self, expr: "sympy.Expr"):
         result_expr = safe_expand(expr).xreplace(self.var_to_val)
         return result_expr.is_number or self._maybe_evaluate_static(result_expr) is not None
 
@@ -3648,8 +3649,7 @@ class ShapeEnv:
         self._set_replacement(a, self.replacements[a].xreplace(cur_replace), "find")
         return self.replacements[a]
 
-    @lru_cache(256)
-    def _maybe_guard_eq(self, expr: Union["sympy.Eq", "sympy.Ne"], concrete_bool: bool) -> None:
+    def _uncached_maybe_guard_eq(self, expr: Union["sympy.Eq", "sympy.Ne"], concrete_bool: bool) -> None:
         """
         Evaluates the result of an eq call. If true, uses information to
         simplify shapes (i.e. a == b or a % 5 == 0)
@@ -3839,9 +3839,8 @@ class ShapeEnv:
                 stack_info=is_debug,
             )
 
-    @lru_cache(256)
     @record_shapeenv_event(save_tracked_fakes=True)
-    def evaluate_expr(self, orig_expr: "sympy.Expr", hint=None, fx_node=None,
+    def _uncached_evaluate_expr(self, orig_expr: "sympy.Expr", hint=None, fx_node=None,
                       expect_rational=True, size_oblivious: bool = False, *, forcing_spec: bool = False):
         """
         Given an expression, evaluates it, adding guards if necessary

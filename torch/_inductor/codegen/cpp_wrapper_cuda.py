@@ -46,6 +46,7 @@ class CudaWrapperCodeGen(CppWrapperCodeGen):
         super().__init__()
         self.grid_id = count()
         self.cuda = True
+        self.generate_load_kernel_once = functools.lru_cache(None)(self._uncached_generate_load_kernel_once)
 
     def write_header(self):
         if V.graph.is_const_graph:
@@ -161,8 +162,7 @@ class CudaWrapperCodeGen(CppWrapperCodeGen):
             self.prefix.writeline("\n")
         return super().generate(is_inference)
 
-    @functools.lru_cache(None)
-    def generate_load_kernel_once(
+    def _uncached_generate_load_kernel_once(
         self, name: str, mangled_name: str, cubin_path: str, shared_mem: int
     ):
         if V.graph.aot_mode:

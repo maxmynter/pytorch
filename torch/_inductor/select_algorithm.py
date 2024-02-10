@@ -592,6 +592,7 @@ class ExternKernelChoice:
         self.name = name
         self.cpp_kernel_name = cpp_kernel
         self.has_out_variant = has_out_variant
+        self.hash_key = functools.lru_cache(None)(self._uncached_hash_key)
         setattr(extern_kernels, name, kernel)
 
     def to_callable(self):
@@ -600,8 +601,7 @@ class ExternKernelChoice:
     def call_name(self):
         return f"extern_kernels.{self.name}"
 
-    @functools.lru_cache(None)
-    def hash_key(self):
+    def _uncached_hash_key(self):
         fn = self.to_callable()
         parts = [
             self.name,

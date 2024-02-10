@@ -50,6 +50,7 @@ class CppWrapperCodeGen(WrapperCodeGen):
         self.used_cached_dtypes = set()
         self.cached_output_id = count()
         self.scalar_to_tensor_id = count()
+        self.codegen_int_array_var = functools.lru_cache(None)(self._uncached_codegen_int_array_var)
 
         from .cpp import cexpr, CppPrinter
 
@@ -1178,8 +1179,7 @@ class CppWrapperCodeGen(WrapperCodeGen):
 
             return DTYPE_TO_ATEN[dtype]
 
-    @functools.lru_cache(None)
-    def codegen_int_array_var(
+    def _uncached_codegen_int_array_var(
         self, int_array: str, writer=None, known_statically=False
     ):
         # Because the memory planning is done in two passes (see the implementation

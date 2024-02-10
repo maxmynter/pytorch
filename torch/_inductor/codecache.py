@@ -234,8 +234,11 @@ class LocalCache(CacheBase):
 
 
 class PersistentCache(CacheBase):
-    @functools.lru_cache(None)
-    def get_global_cache(self):
+    def __init__(self) -> None:
+        super().__init__()
+        self.get_global_cache = functools.lru_cache(None)(self._uncached_get_global_cache)
+ 
+    def _uncached_get_global_cache(self):
         if self.global_cache_path is None or not self.global_cache_path.is_file():
             return {}
         with open(self.global_cache_path) as global_cache_fp:
@@ -972,6 +975,8 @@ import torch
 from ctypes import cdll
 cdll.LoadLibrary("__lib_path__")
 """
+    def __init__(self, _bit_width: int, _macro: str, _arch_flags: str, _dtype_nelements: Dict[torch.dtype, int]) -> None:
+        self.__bool__ = functools.lru_cache(None)(self._uncached__bool__)
 
     def bit_width(self) -> int:
         return self._bit_width
@@ -988,8 +993,7 @@ cdll.LoadLibrary("__lib_path__")
     def __hash__(self) -> int:
         return hash(str(self))
 
-    @functools.lru_cache(None)
-    def __bool__(self) -> bool:
+    def _uncached__bool__(self) -> bool:
         if config.cpp.vec_isa_ok is not None:
             return config.cpp.vec_isa_ok
 
